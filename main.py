@@ -1,10 +1,9 @@
 import cv2
-import mediapipe as mp
+from pose_model import PoseDetector
+from angle_calculation import get_angles
 
-mp_pose = mp.solutions.pose
-pose = mp_pose.Pose()
-mp_drawing = mp.solutions.drawing_utils
 
+pose_detector = PoseDetector()
 cap = cv2.VideoCapture(0)
 
 while cap.isOpened():
@@ -12,11 +11,18 @@ while cap.isOpened():
     if not ret:
         break
 
-    rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-    results = pose.process(rgb_frame)
+    results = pose_detector.process_frame(frame)
+    frame = pose_detector.draw_landmarks(frame, results)
+
     if results.pose_landmarks:
-        mp_drawing.draw_landmarks(frame, results.pose_landmarks, mp_pose.POSE_CONNECTIONS)
-    cv2.imshow("MediaPipe Pose", frame)
+        angles = get_angles(results.pose_landmarks.landmark, pose_detector.mp_pose)
+
+        for i, (name, angle) in enumerate(angles.items()):
+            cv2.putText(frame, f"{name}: {int(angle)}", (50, 50 + i * 20), cv2.FONT_HERSHEY_SIMPLEX, 0.6,
+                        (255, 255, 255), 2)
+
+    cv2.imshow("Pose Estimation", frame)
+
     if cv2.waitKey(1) & 0xFF == ord('z'):
         break
 
