@@ -8,6 +8,7 @@ import cv2
 from pose_model import PoseDetector
 from angle_calculation import get_angles
 
+os.environ["GLOG_minloglevel"] = "0"
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 class App(tk.Tk):
@@ -39,7 +40,7 @@ class WelcomeScene(tk.Frame):
     def __init__(self, parent):
         super().__init__(parent)
         ttk.Label(self, text="Добро пожаловать", font=("Arial", 20)).pack(pady=60)
-        ttk.Button(self, text="Начать", command=lambda: parent.show_frame(AnamnesisScene)).pack()
+        ttk.Button(self, text="Новая запись", command=lambda: parent.show_frame(AnamnesisScene)).pack()
 
 class AnamnesisScene(tk.Frame):
     def __init__(self, parent):
@@ -98,17 +99,12 @@ class PoseScene(tk.Frame):
     def __init__(self, parent, dirname):
         super().__init__(parent)
         self.dirname = dirname
-        self.parent = parent
-
         self.pose_detector = PoseDetector()
         self.cap = cv2.VideoCapture(0)
-        self.last_save_time = time.time()
+        self.last_save_time = 0
+        self.save_interval = 0.1  # сек
 
-        title = ttk.Label(self, text="Оценка позы", font=("Arial", 16))
-        title.grid(row=0, column=0, columnspan=2, pady=(10, 0))
-
-        # subtitle = ttk.Label(self, text="Нажмите ESC, чтобы выйти", font=("Arial", 10))
-        # subtitle.grid(row=1, column=0, columnspan=2, pady=(0, 10))
+        ttk.Label(self, text="Оценка позы", font=("Arial", 16)).grid(row=0, column=0, columnspan=2, pady=(10, 0))
 
         self.video_label = ttk.Label(self)
         self.video_label.grid(row=2, column=0, padx=10, pady=10)
@@ -116,53 +112,38 @@ class PoseScene(tk.Frame):
         self.angles_text = tk.Text(self, height=30, width=30, font=("Courier", 10))
         self.angles_text.grid(row=2, column=1, padx=10, pady=10, sticky="n")
 
-        self.angles_file = open(f"{self.dirname}/angles_log.txt", "w", encoding="utf-8")
-
+        self.angles_file = open(f"{dirname}/angles_log.txt", "w", encoding="utf-8")
         self.update_frame()
 
     def update_frame(self):
         ret, frame = self.cap.read()
         if not ret:
-            self.video_label.config(text="Не удалось получить изображение с камеры.")
+            self.video_label.config(text="Камера недоступна.")
             return
 
         results = self.pose_detector.process_frame(frame)
         frame = self.pose_detector.draw_landmarks(frame, results)
 
+        now = time.time()
+
         if results.pose_landmarks:
-            angles = get_angles(results.pose_landmarks.landmark, self.pose_detector.mp_pose)
+            angles = get_angles(results.pose_landmarks.landmark, self.pose_detector.pose)
 
-            print("Текущие углы:", angles)
+            if now - self.last_save_time >= self.save_interval:
+                self.angles_file.write(f"{now:.2f}: {','.join(f'{k}:{int(v)}' for k, v in angles.items())}\n")
+                self.last_save_time = now
 
-            if time.time() - self.last_save_time >= 0.1:
-                angle_str = ", ".join(f"{k}:{int(v)}" for k, v in angles.items())
-                self.angles_file.write(f"{time.time():.2f}: {angle_str}\n")
-                self.angles_file.flush()
-                self.last_save_time = time.time()
-
-            self.angles_text.delete(1.0, tk.END)
-            if angles:
-                for name, angle in angles.items():
-                    self.angles_text.insert(tk.END, f"{name}: {int(angle)}°\n")
-            else:
-                self.angles_text.insert(tk.END, "Нет данных об углах.")
+            self.angles_text.delete("1.0", tk.END)
+            self.angles_text.insert("1.0", '\n'.join(f"{k}: {int(v)}°" for k, v in angles.items()))
         else:
-            self.angles_text.delete(1.0, tk.END)
-            self.angles_text.insert(tk.END, "Поза не обнаружена.")
+            self.angles_text.delete("1.0", tk.END)
+            self.angles_text.insert("1.0", "Поза не обнаружена.")
 
-        img_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        img_pil = Image.fromarray(img_rgb)
-        imgtk = ImageTk.PhotoImage(image=img_pil)
-
-        self.video_label.imgtk = imgtk
-        self.video_label.config(image=imgtk)
+        img_pil = Image.fromarray(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
+        self.video_label.imgtk = ImageTk.PhotoImage(img_pil)
+        self.video_label.config(image=self.video_label.imgtk)
 
         self.after(10, self.update_frame)
-
-    def destroy(self):
-        self.cap.release()
-        self.angles_file.close()
-        super().destroy()
 
     def destroy(self):
         self.cap.release()
