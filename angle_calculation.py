@@ -1,4 +1,5 @@
 import numpy as np
+from mediapipe.python.solutions.pose import PoseLandmark
 
 def calculate_angle(a, b, c):
     ba = np.subtract(a, b)
@@ -12,12 +13,12 @@ def calculate_angle(a, b, c):
     cosine_angle = np.dot(ba, bc) / (norm_ba * norm_bc)
     return np.degrees(np.arccos(np.clip(cosine_angle, -1.0, 1.0)))
 
-def get_angles(landmarks, mp_pose):
+def get_angles(landmarks, mp_pose=None):  # можно оставить mp_pose, если вдруг пригодится
     def point(p):  # avoid repeating [x, y]
         return [p.x, p.y]
 
-    lms = mp_pose.PoseLandmark
-    points = {name: point(landmarks[getattr(lms, name)]) for name in (
+    lms = PoseLandmark  # <-- используем напрямую импортированный enum
+    points = {name: point(landmarks[getattr(lms, name).value]) for name in (
         "LEFT_HIP", "LEFT_KNEE", "LEFT_ANKLE", "LEFT_FOOT_INDEX",
         "RIGHT_HIP", "RIGHT_KNEE", "RIGHT_ANKLE", "RIGHT_FOOT_INDEX"
     )}
