@@ -11,19 +11,36 @@ from angle_calculation import get_angles
 os.environ["GLOG_minloglevel"] = "0"
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
+CAMERA_WIDTH = 640
+CAMERA_HEIGHT = 480
+TEXT_WIDTH = 300  # ширина текстового поля в пикселях
+PADDING = 40  # отступы
+
 class App(tk.Tk):
     def __init__(self):
         super().__init__()
         self.title("Patient App")
-        self.geometry("500x400")
+
+        total_width = CAMERA_WIDTH + TEXT_WIDTH + PADDING
+        total_height = max(CAMERA_HEIGHT, 600) + PADDING
+
+        self.geometry(f"{total_width}x{total_height}")
+        self.minsize(total_width, total_height)
+
         self.patient_data = {}
         self.frames = {}
 
+        container = tk.Frame(self)
+        container.pack(fill="both", expand=True)
+        container.grid_rowconfigure(0, weight=1)
+        container.grid_columnconfigure(0, weight=1)
+
         for F in (WelcomeScene, AnamnesisScene):
-            frame = F(self)
+            frame = F(container, self)
             self.frames[F] = frame
             frame.grid(row=0, column=0, sticky="nsew")
 
+        self.container = container
         self.show_frame(WelcomeScene)
 
     def show_frame(self, cont):
@@ -31,23 +48,28 @@ class App(tk.Tk):
         frame.tkraise()
 
     def show_pose_scene(self, dirname):
-        frame = PoseScene(self, dirname)
+        frame = PoseScene(self.container, self, dirname)
         self.frames[PoseScene] = frame
         frame.grid(row=0, column=0, sticky="nsew")
         self.show_frame(PoseScene)
 
 class WelcomeScene(tk.Frame):
-    def __init__(self, parent):
+    def __init__(self, parent, controller):
         super().__init__(parent)
-        ttk.Label(self, text="Добро пожаловать", font=("Arial", 20)).pack(pady=60)
-        ttk.Button(self, text="Новая запись", command=lambda: parent.show_frame(AnamnesisScene)).pack()
+        self.controller = controller
+        self.columnconfigure(0, weight=1)
+
+        ttk.Label(self, text="Добро пожаловать", font=("Arial", 24)).grid(row=0, column=0, pady=60)
+        ttk.Button(self, text="Новая запись", command=lambda: controller.show_frame(AnamnesisScene)).grid(row=1, column=0, pady=20)
 
 class AnamnesisScene(tk.Frame):
-    def __init__(self, parent):
+    def __init__(self, parent, controller):
         super().__init__(parent)
-        self.parent = parent
+        self.controller = controller
+        for i in range(2):
+            self.columnconfigure(i, weight=1)
 
-        ttk.Label(self, text="Анамнез пациента", font=("Arial", 16)).pack(pady=10)
+        ttk.Label(self, text="Анамнез пациента", font=("Arial", 20)).grid(row=0, column=0, columnspan=2, pady=20)
 
         self.entries = {}
         fields = [
@@ -59,18 +81,20 @@ class AnamnesisScene(tk.Frame):
             ("Доп. информация", "additional_info"),
         ]
 
-        for label, key in fields:
-            ttk.Label(self, text=label).pack()
+        for idx, (label, key) in enumerate(fields, start=1):
+            ttk.Label(self, text=label).grid(row=idx, column=0, sticky="e", padx=10, pady=5)
             entry = ttk.Entry(self)
-            entry.pack()
+            entry.grid(row=idx, column=1, sticky="w", padx=10, pady=5)
             self.entries[key] = entry
 
-        ttk.Label(self, text="Пол").pack()
+        ttk.Label(self, text="Пол").grid(row=len(fields) + 1, column=0, sticky="e", padx=10, pady=5)
         self.gender = tk.StringVar(value="муж")
-        ttk.Radiobutton(self, text="Муж", variable=self.gender, value="муж").pack()
-        ttk.Radiobutton(self, text="Жен", variable=self.gender, value="жен").pack()
+        frame_gender = ttk.Frame(self)
+        frame_gender.grid(row=len(fields) + 1, column=1, sticky="w", padx=10, pady=5)
+        ttk.Radiobutton(frame_gender, text="Муж", variable=self.gender, value="муж").pack(side="left")
+        ttk.Radiobutton(frame_gender, text="Жен", variable=self.gender, value="жен").pack(side="left")
 
-        ttk.Button(self, text="Продолжить", command=self.save_data).pack(pady=10)
+        ttk.Button(self, text="Продолжить", command=self.save_data).grid(row=len(fields) + 2, column=0, columnspan=2, pady=20)
 
     def save_data(self):
         data = {}
@@ -92,25 +116,33 @@ class AnamnesisScene(tk.Frame):
         with open(f"{dirname}/parameters.json", "w", encoding="utf-8") as f:
             json.dump(data, f, ensure_ascii=False, indent=2)
 
-        self.parent.patient_data = data
-        self.parent.show_pose_scene(dirname)
+        self.controller.patient_data = data
+        self.controller.show_pose_scene(dirname)
 
 class PoseScene(tk.Frame):
-    def __init__(self, parent, dirname):
+    def __init__(self, parent, controller, dirname):
         super().__init__(parent)
+        self.controller = controller
         self.dirname = dirname
         self.pose_detector = PoseDetector()
         self.cap = cv2.VideoCapture(0)
-        self.last_save_time = 0
-        self.save_interval = 0.1  # сек
+        self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, CAMERA_WIDTH)
+        self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, CAMERA_HEIGHT)
 
-        ttk.Label(self, text="Оценка позы", font=("Arial", 16)).grid(row=0, column=0, columnspan=2, pady=(10, 0))
+        self.last_save_time = 0
+        self.save_interval = 0.1  # секунд
+
+        self.grid_rowconfigure(1, weight=1)
+        self.grid_columnconfigure(0, weight=1)
+        self.grid_columnconfigure(1, weight=0)
+
+        ttk.Label(self, text="Оценка позы", font=("Arial", 20)).grid(row=0, column=0, columnspan=2, pady=(20, 10))
 
         self.video_label = ttk.Label(self)
-        self.video_label.grid(row=2, column=0, padx=10, pady=10)
+        self.video_label.grid(row=1, column=0, padx=10, pady=10, sticky="nsew")
 
-        self.angles_text = tk.Text(self, height=30, width=30, font=("Courier", 10))
-        self.angles_text.grid(row=2, column=1, padx=10, pady=10, sticky="n")
+        self.angles_text = tk.Text(self, font=("Courier", 12), width=30, wrap="none")
+        self.angles_text.grid(row=1, column=1, padx=10, pady=10, sticky="ns")
 
         self.angles_file = open(f"{dirname}/angles_log.txt", "w", encoding="utf-8")
         self.update_frame()
@@ -140,8 +172,9 @@ class PoseScene(tk.Frame):
             self.angles_text.insert("1.0", "Поза не обнаружена.")
 
         img_pil = Image.fromarray(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
-        self.video_label.imgtk = ImageTk.PhotoImage(img_pil)
-        self.video_label.config(image=self.video_label.imgtk)
+        imgtk = ImageTk.PhotoImage(img_pil)
+        self.video_label.imgtk = imgtk
+        self.video_label.config(image=imgtk)
 
         self.after(10, self.update_frame)
 
