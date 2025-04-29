@@ -1,5 +1,9 @@
 # VAMP — Application for Analyzing Movements of Patients with Amputation
 
+<p align="center">
+  <img src="assets/keypoints.png" alt="VAMP Screenshot" width="600"/>
+</p>
+
 ---
 
 ## 📖 Project Description
@@ -36,15 +40,18 @@ The goal of the project is to facilitate the collection and analysis of motor ac
 ```
 VAMP/
 │
-├── main.py                 # Main application file
-├── pose_model.py           # Handling Mediapipe pose capture
-├── angle_calculation.py    # Joint angle calculations
-├── requirements.txt        # Project dependencies
-├── README.md               # Project instructions
-└── data/                   # Automatically generated folder with patient data
-    └── <PatientName>/
-        ├── parameters.json  # Saved patient history
-        └── angles_log.txt   # Real-time angle log
+├── main.py                      # Main application file
+├── requirements.txt             # Project dependencies
+├── README.md                    # Project instructions
+├── data/                        # Automatically generated folder with patient data
+│    └── <PatientName>/
+│        ├── parameters.json      # Saved patient history
+│        └── angles_log.txt       # Real-time angle log
+├── assets/                      
+│    └── ...                      # Some images for README
+└── res/
+    ├── pose_model.py            # Handling Mediapipe pose capture
+    └── angle_calculation.py     # Joint angle calculations
 ```
 
 ---
@@ -126,5 +133,12 @@ File `angles_log.txt`:
 1714315612.62: knee_l:169,knee_r:171,ankle_l:91,ankle_r:91,hip_l:186,hip_r:182
 ...
 ```
+
+---
+
+## 👥 Authors
+
+- [**Atom J2**](https://github.com/AtomJ2) - Backend
+- [**ZaAuchan**](https://github.com/ZaAuchan) - ML Engineer
 
 ---
