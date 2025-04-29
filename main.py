@@ -5,8 +5,8 @@ from PIL import Image, ImageTk
 import tkinter as tk
 from tkinter import ttk, messagebox
 import cv2
-from pose_model import PoseDetector
-from angle_calculation import get_angles
+from res.pose_model import PoseDetector
+from res.angle_calculation import get_angles
 
 os.environ["GLOG_minloglevel"] = "0"
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
