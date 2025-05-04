@@ -1,4 +1,4 @@
-# VAMP — Application for Analyzing Movements of Patients with Amputation
+# VAMP — Application for analyzing movements of patients with amputation
 
 <p align="center">
   <img src="assets/keypoints.png" alt="VAMP Screenshot" width="600"/>
