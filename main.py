@@ -4,6 +4,7 @@ import time
 from PIL import Image, ImageTk
 import tkinter as tk
 from tkinter import ttk, messagebox
+from tkinter import filedialog
 import cv2
 from res.pose_model import PoseDetector
 from res.angle_calculation import get_angles
@@ -47,11 +48,12 @@ class App(tk.Tk):
         frame = self.frames[cont]
         frame.tkraise()
 
-    def show_pose_scene(self, dirname):
-        frame = PoseScene(self.container, self, dirname)
+    def show_pose_scene(self, dirname, video_path=None):
+        frame = PoseScene(self.container, self, dirname, video_path=video_path)
         self.frames[PoseScene] = frame
         frame.grid(row=0, column=0, sticky="nsew")
         self.show_frame(PoseScene)
+
 
 class WelcomeScene(tk.Frame):
     def __init__(self, parent, controller):
@@ -60,7 +62,26 @@ class WelcomeScene(tk.Frame):
         self.columnconfigure(0, weight=1)
 
         ttk.Label(self, text="Добро пожаловать", font=("Arial", 24)).grid(row=0, column=0, pady=60)
-        ttk.Button(self, text="Новая запись", command=lambda: controller.show_frame(AnamnesisScene)).grid(row=1, column=0, pady=20)
+
+        ttk.Button(self, text="Новая запись", command=lambda: controller.show_frame(AnamnesisScene)).grid(row=1, column=0, pady=10)
+        ttk.Button(self, text="Открыть видео", command=self.open_video).grid(row=2, column=0, pady=10)
+
+    def open_video(self):
+        filepath = filedialog.askopenfilename(
+            title="Выберите видеофайл",
+            filetypes=(("Video files", "*.mp4 *.avi *.mov"), ("All files", "*.*"))
+        )
+        if filepath:
+            # Подставляем временные данные, если нет анкеты
+            dummy_data = {"name": "video_input"}
+            dirname = "data/video_input"
+            os.makedirs(dirname, exist_ok=True)
+            with open(f"{dirname}/parameters.json", "w", encoding="utf-8") as f:
+                json.dump(dummy_data, f, ensure_ascii=False, indent=2)
+
+            self.controller.patient_data = dummy_data
+            self.controller.show_pose_scene(dirname, video_path=filepath)
+
 
 class AnamnesisScene(tk.Frame):
     def __init__(self, parent, controller):
@@ -120,17 +141,21 @@ class AnamnesisScene(tk.Frame):
         self.controller.show_pose_scene(dirname)
 
 class PoseScene(tk.Frame):
-    def __init__(self, parent, controller, dirname):
+    def __init__(self, parent, controller, dirname, video_path=None):
         super().__init__(parent)
         self.controller = controller
         self.dirname = dirname
         self.pose_detector = PoseDetector()
-        self.cap = cv2.VideoCapture(0)
-        self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, CAMERA_WIDTH)
-        self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, CAMERA_HEIGHT)
+
+        if video_path:
+            self.cap = cv2.VideoCapture(video_path)
+        else:
+            self.cap = cv2.VideoCapture(0)
+            self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, CAMERA_WIDTH)
+            self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, CAMERA_HEIGHT)
 
         self.last_save_time = 0
-        self.save_interval = 0.1  # секунд
+        self.save_interval = 0.1
 
         self.grid_rowconfigure(1, weight=1)
         self.grid_columnconfigure(0, weight=1)
