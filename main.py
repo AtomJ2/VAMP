@@ -280,7 +280,6 @@ class PoseScene(tk.Frame):
         pdf.ln(10)
         pdf.cell(0, 10, txt="Графики углов", ln=True)
 
-        # Графики
         fig, axs = plt.subplots(3, 2, figsize=(8, 6))
         for i, (key, _) in enumerate(self.angle_history.items()):
             row, col = divmod(i, 2)
