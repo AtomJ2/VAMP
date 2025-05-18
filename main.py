@@ -7,6 +7,7 @@ from PIL import Image, ImageTk
 import cv2
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+from fpdf import FPDF
 
 from res.pose_model import PoseDetector
 from res.angle_calculation import get_angles
@@ -126,9 +127,6 @@ class AnamnesisScene(tk.Frame):
 
         self.controller.patient_data = data
         self.controller.show_pose_scene(dirname)
-
-
-from fpdf import FPDF
 
 class PDF(FPDF):
     def __init__(self, font_path: str):
