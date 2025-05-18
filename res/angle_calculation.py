@@ -24,10 +24,13 @@ def get_angles(landmarks, mp_pose=None):  # можно оставить mp_pose,
     )}
 
     return {
-        "knee_l": calculate_angle(points["LEFT_HIP"], points["LEFT_KNEE"], points["LEFT_ANKLE"]),
-        "knee_r": calculate_angle(points["RIGHT_HIP"], points["RIGHT_KNEE"], points["RIGHT_ANKLE"]),
-        "ankle_l": calculate_angle(points["LEFT_KNEE"], points["LEFT_ANKLE"], points["LEFT_FOOT_INDEX"]),
-        "ankle_r": calculate_angle(points["RIGHT_KNEE"], points["RIGHT_ANKLE"], points["RIGHT_FOOT_INDEX"]),
-        "hip_l": calculate_angle(points["LEFT_KNEE"], points["LEFT_HIP"], [points["LEFT_HIP"][0], points["LEFT_HIP"][1] - 0.1]),
-        "hip_r": calculate_angle(points["RIGHT_KNEE"], points["RIGHT_HIP"], [points["RIGHT_HIP"][0], points["RIGHT_HIP"][1] - 0.1])
+        "LHip": calculate_angle(points["LEFT_KNEE"], points["LEFT_HIP"],
+                                [points["LEFT_HIP"][0], points["LEFT_HIP"][1] - 0.1]),
+        "LKnee": calculate_angle(points["LEFT_HIP"], points["LEFT_KNEE"], points["LEFT_ANKLE"]),
+        "LAnkle": calculate_angle(points["LEFT_KNEE"], points["LEFT_ANKLE"], points["LEFT_FOOT_INDEX"]),
+        "RHip": calculate_angle(points["RIGHT_KNEE"], points["RIGHT_HIP"],
+                                [points["RIGHT_HIP"][0], points["RIGHT_HIP"][1] - 0.1]),
+        "RKnee": calculate_angle(points["RIGHT_HIP"], points["RIGHT_KNEE"], points["RIGHT_ANKLE"]),
+        "RAnkle": calculate_angle(points["RIGHT_KNEE"], points["RIGHT_ANKLE"], points["RIGHT_FOOT_INDEX"])
     }
+
